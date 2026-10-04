@@ -1,6 +1,6 @@
 # Home Builder Video Library — Implementation Plan
 
-Status: **Draft — review section 11 (defaults chosen on your behalf) before Phase 1 starts.**
+Status: **Agreed. One open item: the `cloudflared` Docker network name (section 11). It doesn't block Phase 1.**
 
 ## 1. Goal
 
@@ -105,14 +105,14 @@ for that house only.
 | Table | Key columns |
 |---|---|
 | `area_types` | `id`, `slug` UNIQUE, `name`, `category` ENUM(interior,exterior,system,workshop), `default_zone`, `sort_order` (seeded) |
-| `items` | `id`, `slug` UNIQUE, `name`, `system_area_type_id` NULL (e.g. Electrical) (seeded) |
+| `items` | `id`, `slug` UNIQUE, `name`, `system_area_type_id` NULL (e.g. Electrical), `whole_house` BOOL (shown in every interior area) (seeded) |
 | `item_default_placements` | (`item_id`, `area_type_id`): where an item goes when a house is created |
 | `houses` | `id`, `name`, `created_by`, timestamps |
 | `house_members` | (`house_id`, `email`) PK, `role` ENUM(owner,editor,viewer) |
 | `house_areas` | `id`, `house_id`, `area_type_id` NULL, `name`, `zone` (3D slot), `hidden`, `sort_order` |
 | `house_item_placements` | (`house_id`, `item_id`, `house_area_id`) PK; an item can be in more than one area |
-| `videos` | `id`, `youtube_id` (11 characters, validated), `house_id` NULL (NULL = shared, set = private), `title`, `channel_name`, `thumbnail_url`, `notes`, `source` ENUM(playlist,csv,manual), `review_status` ENUM(inbox,sorted), `metadata_status` ENUM(pending,ok,unavailable), timestamps; UNIQUE(`youtube_id`, `house_scope`)\*; FULLTEXT(`title`,`channel_name`,`notes`) |
-| `tags` | `id`, `slug` UNIQUE, `name` |
+| `videos` | `id`, `youtube_id` (11 characters, validated), `house_id` NULL (NULL = shared, set = private), `title`, `channel_name`, `thumbnail_url`, `notes`, `source` ENUM(playlist,csv,paste,manual), `review_status` ENUM(inbox,sorted), `metadata_status` ENUM(pending,ok,unavailable), timestamps; UNIQUE(`youtube_id`, `house_scope`)\*; FULLTEXT(`title`,`channel_name`,`notes`) |
+| `tags` | `id`, `house_id` NULL (NULL = shared tag, set = house tag), `slug`, `name`, `kind` ENUM(topic,skill,task,other); UNIQUE(`slug`, `house_scope`) |
 | `video_tags` | (`video_id`, `tag_id`) |
 | `video_area_types` | (`video_id`, `area_type_id`), `suggested` BOOL |
 | `video_items` | (`video_id`, `item_id`), `suggested` BOOL |
@@ -124,7 +124,7 @@ for that house only.
 
 \* MySQL treats NULLs as distinct in UNIQUE indexes. `house_scope` is a stored
 generated column, `COALESCE(house_id, 0)`, so a video is unique within the
-shared library and within each house.
+shared library and within each house. `tags` uses the same pattern.
 
 ### 5.3 Seeds
 
@@ -132,9 +132,35 @@ shared library and within each house.
 - **Exterior:** roof & gutters, siding & windows, exterior doors, deck/porch, foundation, driveway, yard/landscaping
 - **Systems:** electrical, plumbing, HVAC, insulation, framing, drywall & paint
 - **Workshop:** tools, safety, general skills
-- **Items (example defaults):** electrical panel → garage; water heater → garage;
-  furnace → basement; sump pump → basement; washer/dryer hookups → laundry;
-  garage door opener → garage; attic fan → attic
+- **Items, with default placement.** Owners can move any of these, place one
+  in several areas, or hide it if the house doesn't have it (e.g. no well, no
+  septic).
+
+  | Area | Items |
+  |---|---|
+  | Garage | electrical panel (main), garage door, garage door opener, water heater |
+  | Basement | furnace, sump pump, water main shutoff, water softener, dehumidifier, pressure tank (well), electrical sub-panel, gas shutoff |
+  | Kitchen | sink & faucet, garbage disposal, dishwasher, range hood, refrigerator water line, cabinets, countertops |
+  | Bathroom | toilet, shower/tub, vanity & faucet, exhaust fan, GFCI outlets |
+  | Laundry | washer hookups, dryer & dryer vent |
+  | Living room | fireplace, ceiling fan |
+  | Bedroom | closet, windows (interior trim) |
+  | Attic | attic insulation, attic fan / ventilation, attic access |
+  | Roof & gutters | shingles, flashing, gutters & downspouts, chimney |
+  | Siding & windows | siding, exterior windows, caulking & weatherstripping |
+  | Exterior doors | entry door, sliding/patio door, storm door |
+  | Deck/porch | deck boards, railings |
+  | Foundation | foundation walls, crawlspace, grading & drainage |
+  | Driveway | driveway, walkways |
+  | Yard/landscaping | hose bibs, irrigation, well pump, septic tank, fence, AC condenser / heat pump, electric meter, gas meter |
+  | Whole house (shown in every interior area) | thermostat, smoke & CO detectors, outlets & switches, light fixtures, interior doors, flooring, drywall |
+
+- **Shared tags (seeded).**
+  - *Task:* install, repair, replace, maintenance, inspection, troubleshooting, upgrade, renovation, new construction, seasonal
+  - *Skill level:* beginner, intermediate, advanced, hire a pro
+  - *Topic:* safety, code & permits, energy efficiency, cost saving, water damage, mold, pests, weatherproofing, storm prep
+  - *Trade:* carpentry, painting, tiling, flooring, concrete, roofing, plumbing, electrical, HVAC, drywall, landscaping, welding
+  - *Tools:* hand tools, power tools, measuring, tool maintenance
 
 A new house gets one house area per visible area type, plus the default item
 placements, which owners and editors can then change.
@@ -150,11 +176,12 @@ safely. Every migration is tested up → down → up against MySQL 8.4 in CI.
 | Action | Global admin | House owner | House editor | House viewer |
 |---|---|---|---|---|
 | Browse shared library | ✓ | ✓ | ✓ | ✓ |
-| Edit shared library (videos, tags, rules, area types, items, playlists, CSV) | ✓ | | | |
+| Edit shared library (videos, shared tags, rules, area types, items, playlists, CSV) | ✓ | | | |
 | Create / delete houses | ✓ | | | |
 | Manage house members | ✓ | ✓ | | |
 | Add/rename/hide house areas, move items | ✓ | ✓ | ✓ | |
-| Add/edit house-private videos | ✓ | ✓ | ✓ | |
+| Add/edit house-private videos (one URL, pasted list, or CSV) | ✓ | ✓ | ✓ | |
+| Create/edit house tags; apply any tag to private videos | ✓ | ✓ | ✓ | |
 | See house-private videos | ✓ | ✓ | ✓ | ✓ |
 
 A user who isn't a member of any house can still browse the shared library and
@@ -244,15 +271,21 @@ and management of tags, area types and items.
 5. **3D house**: Three.js scene, zones, items, overlays, fallback menu.
 6. **Ops**: backup/restore scripts, Unraid install guide, hardening review.
 
-## 11. Defaults chosen; please confirm or change
+## 11. Resolved decisions and open items
 
-1. **Tags are global**, and only global admins create them. House editors can
-   apply existing tags to private videos.
-2. **Private videos** are added one URL at a time by house editors. Playlist
-   sync and CSV import feed only the shared library.
+1. **Tags:** global admins manage the seeded **shared tags** (section 5.3).
+   House owners and editors can create **house tags**, which only that house's
+   members see. Both kinds can be applied to that house's private videos, and
+   a house tag never shows up in another house.
+2. **Private videos:** house editors add them one URL at a time, or **in
+   bulk** by pasting a list of URLs (one per line, up to 500) or uploading a
+   Takeout-style CSV. Bulk adds run as worker jobs scoped to that house; any
+   duplicates and invalid URLs are reported back. Nightly playlist sync feeds
+   only the shared library.
 3. **Appdata path:** `/mnt/user/appdata/home-builder/` (overridable with
    `APPDATA_DIR`).
-4. **Docker network name** for `cloudflared`: set with
-   `CLOUDFLARED_NETWORK` in `.env`. You'll need to give me your network name.
+4. **Open: Docker network name** for `cloudflared`. Compose reads it from
+   `CLOUDFLARED_NETWORK` in `.env`, so this only needs to be filled in at
+   deploy time.
 5. **Nightly sync time:** 03:00 server local time (overridable with
    `SYNC_CRON`).
