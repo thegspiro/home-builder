@@ -52,8 +52,9 @@ describe('GET /api/me and /healthz against MySQL', () => {
   });
 
   afterAll(async () => {
-    await app.close();
-    await db.destroy();
+    // Optional chaining: if beforeAll failed, report that error rather than a teardown crash.
+    await app?.close();
+    await db?.destroy();
   });
 
   it('reports healthy', async () => {
