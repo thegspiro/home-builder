@@ -1,0 +1,68 @@
+# Home Builder video library: production stack for Unraid / any Docker host.
+#
+#   cp .env.example .env    # then fill it in
+#   docker compose up -d
+#
+# The app publishes no host port. It is reachable only through your existing
+# cloudflared container, which must be attached to the network named by
+# CLOUDFLARED_NETWORK. MySQL sits on an internal network with no outside access.
+name: home-builder
+
+services:
+  db:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DATABASE_NAME:-homebuilder}
+      MYSQL_USER: ${DATABASE_USER:-homebuilder}
+      MYSQL_PASSWORD: ${DATABASE_PASSWORD:?Set DATABASE_PASSWORD in .env}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env}
+      TZ: ${TZ:-UTC}
+    volumes:
+      - ${APPDATA_DIR:-/mnt/user/appdata/home-builder}/mysql:/var/lib/mysql
+    healthcheck:
+      # MYSQL_PWD keeps the password off the process command line.
+      test: ['CMD-SHELL', 'MYSQL_PWD="$$MYSQL_ROOT_PASSWORD" mysqladmin ping -h 127.0.0.1 -u root --silent']
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
+    networks:
+      - internal
+
+  app:
+    image: ${APP_IMAGE:-ghcr.io/thegspiro/home-builder-app}:${APP_IMAGE_TAG:-latest}
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PUBLIC_ORIGIN: ${PUBLIC_ORIGIN:?Set PUBLIC_ORIGIN in .env}
+      CF_ACCESS_TEAM_DOMAIN: ${CF_ACCESS_TEAM_DOMAIN:?Set CF_ACCESS_TEAM_DOMAIN in .env}
+      CF_ACCESS_AUD: ${CF_ACCESS_AUD:?Set CF_ACCESS_AUD in .env}
+      ADMIN_EMAILS: ${ADMIN_EMAILS:-}
+      DATABASE_HOST: db
+      DATABASE_PORT: '3306'
+      DATABASE_NAME: ${DATABASE_NAME:-homebuilder}
+      DATABASE_USER: ${DATABASE_USER:-homebuilder}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:?Set DATABASE_PASSWORD in .env}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      TZ: ${TZ:-UTC}
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - internal
+      - cloudflared
+
+networks:
+  internal:
+    # No route to the outside world; only db and app are attached.
+    internal: true
+  cloudflared:
+    external: true
+    name: ${CLOUDFLARED_NETWORK:?Set CLOUDFLARED_NETWORK in .env to the Docker network your cloudflared container uses}

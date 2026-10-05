@@ -110,9 +110,10 @@ for that house only.
 | `houses` | `id`, `name`, `created_by`, timestamps |
 | `house_members` | (`house_id`, `email`) PK, `role` ENUM(owner,editor,viewer) |
 | `house_areas` | `id`, `house_id`, `area_type_id` NULL, `name`, `zone` (3D slot), `hidden`, `sort_order` |
-| `house_item_placements` | (`house_id`, `item_id`, `house_area_id`) PK; an item can be in more than one area |
+| `house_item_placements` | (`house_id`, `item_id`, `house_area_id`) PK; an item can be in more than one area; composite FK guarantees the area belongs to the same house |
+| `house_hidden_items` | (`house_id`, `item_id`): items this house doesn't have (e.g. no well), including whole-house items |
 | `videos` | `id`, `youtube_id` (11 characters, validated), `house_id` NULL (NULL = shared, set = private), `title`, `channel_name`, `thumbnail_url`, `notes`, `source` ENUM(playlist,csv,paste,manual), `review_status` ENUM(inbox,sorted), `metadata_status` ENUM(pending,ok,unavailable), timestamps; UNIQUE(`youtube_id`, `house_scope`)\*; FULLTEXT(`title`,`channel_name`,`notes`) |
-| `tags` | `id`, `house_id` NULL (NULL = shared tag, set = house tag), `slug`, `name`, `kind` ENUM(topic,skill,task,other); UNIQUE(`slug`, `house_scope`) |
+| `tags` | `id`, `house_id` NULL (NULL = shared tag, set = house tag), `slug`, `name`, `kind` ENUM(task,skill,topic,trade,tools,other); UNIQUE(`slug`, `house_scope`) |
 | `video_tags` | (`video_id`, `tag_id`) |
 | `video_area_types` | (`video_id`, `area_type_id`), `suggested` BOOL |
 | `video_items` | (`video_id`, `item_id`), `suggested` BOOL |
@@ -125,6 +126,10 @@ for that house only.
 \* MySQL treats NULLs as distinct in UNIQUE indexes. `house_scope` is a stored
 generated column, `COALESCE(house_id, 0)`, so a video is unique within the
 shared library and within each house. `tags` uses the same pattern.
+MySQL doesn't allow CASCADE on a foreign key whose column feeds a stored
+generated column, so `videos.house_id` and `tags.house_id` are `ON DELETE
+RESTRICT`: deleting a house must first delete its private videos and tags (the
+house-delete API does this in one transaction).
 
 ### 5.3 Seeds
 
@@ -168,8 +173,14 @@ placements, which owners and editors can then change.
 ### 5.4 Migrations
 
 Migrations are versioned Kysely migrations with matching `down` functions for
-rollback. Seeds use `INSERT … ON DUPLICATE KEY UPDATE`, so they can be re-run
-safely. Every migration is tested up → down → up against MySQL 8.4 in CI.
+rollback, and run automatically when the app starts (under a MySQL lock, so
+replicas can't race). MySQL DDL isn't transactional, so schema statements use
+`CREATE TABLE IF NOT EXISTS` and an interrupted run is safe to repeat.
+
+The seed catalog is applied **once**, by migration `0002_seed_catalog`, with
+"insert if missing" statements. Edits made in the app (renaming, deleting) are
+never overwritten on restart; later catalog additions ship as new migrations.
+Every migration is tested up → down → up against MySQL 8.4 in CI.
 
 ## 6. Roles and permissions
 
@@ -260,8 +271,9 @@ and management of tags, area types and items.
 
 ## 10. Delivery phases (one PR each)
 
-1. **Foundation**: scaffolding, compose, migrations and seeds, Access JWT
-   middleware, permission module, health endpoint, CI and GHCR publishing.
+1. **Foundation**: app scaffolding, compose (db + app), migrations and seeds,
+   Access JWT middleware, permission module, health endpoint, CI and GHCR
+   publishing. The `worker/` and `web/` folders arrive with phases 3 and 4.
 2. **Houses**: house, member, area and item-placement APIs, with
    cross-house access tests.
 3. **Import pipeline**: worker, playlist sync (manual + nightly), CSV import,
