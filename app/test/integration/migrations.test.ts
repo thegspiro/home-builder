@@ -1,8 +1,9 @@
-import type { Kysely } from 'kysely';
+import { sql, type Kysely } from 'kysely';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { migrateDown, migrateToLatest, MIGRATIONS } from '../../src/db/migrate.js';
 import * as m0001 from '../../src/db/migrations/0001_initial_schema.js';
 import * as m0002 from '../../src/db/migrations/0002_seed_catalog.js';
+import * as m0003 from '../../src/db/migrations/0003_inbox_suggestions.js';
 import type { Database } from '../../src/db/schema.js';
 import { AREA_TYPES, ITEMS, TAGS } from '../../src/db/seed-data.js';
 import { count, createTestDb, listTables, resetDatabase } from './db.js';
@@ -114,7 +115,46 @@ describe('migrations', () => {
     expect(await count(db, 'tags')).toBe(TAGS.length - 1);
   });
 
+  it('0003 adds video_tags.suggested, keeps existing links confirmed, and rolls back', async () => {
+    // Undo 0003, add a tag link the old way, then re-apply.
+    expect(await migrateDown(db)).toEqual(['0003_inbox_suggestions']);
+    await sql`INSERT INTO videos (youtube_id, source, added_by) VALUES ('ddddddddddd', 'manual', 'x@example.com')`.execute(
+      db,
+    );
+    await sql`
+      INSERT INTO video_tags (video_id, tag_id)
+      SELECT v.id, t.id FROM videos v, tags t
+      WHERE v.youtube_id = 'ddddddddddd' AND t.slug = 'repair' AND t.house_id IS NULL
+    `.execute(db);
+    expect(await migrateToLatest(db)).toEqual(['0003_inbox_suggestions']);
+    const link = await db.selectFrom('video_tags').select('suggested').executeTakeFirstOrThrow();
+    expect(link.suggested).toBe(0);
+    // Re-running the body is a no-op.
+    await m0003.up(db as unknown as Kysely<unknown>);
+    await db.deleteFrom('videos').execute();
+  });
+
+  it('0003 adds the apply_rules job type and its rollback removes those jobs only', async () => {
+    const job = (type: 'apply_rules' | 'paste_import') =>
+      db
+        .insertInto('import_jobs')
+        .values({ type, payload: '{}', created_by: 'x@example.com' })
+        .execute();
+    await job('apply_rules');
+    await job('paste_import');
+
+    expect(await migrateDown(db)).toEqual(['0003_inbox_suggestions']);
+    const left = await db.selectFrom('import_jobs').select('type').execute();
+    expect(left).toEqual([{ type: 'paste_import' }]);
+    await expect(job('apply_rules')).rejects.toMatchObject({ code: 'WARN_DATA_TRUNCATED' });
+
+    expect(await migrateToLatest(db)).toEqual(['0003_inbox_suggestions']);
+    await job('apply_rules');
+    await db.deleteFrom('import_jobs').execute();
+  });
+
   it('rolls back down to an empty schema and back up again', async () => {
+    expect(await migrateDown(db)).toEqual(['0003_inbox_suggestions']);
     expect(await migrateDown(db)).toEqual(['0002_seed_catalog']);
     expect(await count(db, 'area_types')).toBe(0);
     expect(await count(db, 'items')).toBe(0);

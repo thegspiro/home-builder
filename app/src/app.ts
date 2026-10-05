@@ -8,6 +8,10 @@ import type { Database } from './db/schema.js';
 import { HttpError } from './http/errors.js';
 import { healthRoutes } from './routes/health.js';
 import { houseRoutes } from './routes/houses.js';
+import { importRoutes } from './routes/imports.js';
+import { playlistRoutes } from './routes/playlists.js';
+import { ruleRoutes } from './routes/rules.js';
+import { videoRoutes } from './routes/videos.js';
 import { meRoutes } from './routes/me.js';
 
 declare module 'fastify' {
@@ -117,6 +121,10 @@ export async function buildApp(deps: AppDependencies): Promise<FastifyInstance> 
   await app.register(healthRoutes, { db: deps.db });
   await app.register(meRoutes, { db: deps.db });
   await app.register(houseRoutes, { db: deps.db });
+  await app.register(importRoutes, { db: deps.db });
+  await app.register(playlistRoutes, { db: deps.db });
+  await app.register(ruleRoutes, { db: deps.db });
+  await app.register(videoRoutes, { db: deps.db });
 
   return app;
 }

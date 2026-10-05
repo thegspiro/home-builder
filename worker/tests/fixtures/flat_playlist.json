@@ -1,0 +1,16 @@
+{
+  "_type": "playlist",
+  "id": "PLtest1234567890abcdef",
+  "title": "Home   repair\nvideos",
+  "uploader": "Example Channel",
+  "entries": [
+    {"_type": "url", "ie_key": "Youtube", "id": "aaaaaaaaaaa", "url": "https://www.youtube.com/watch?v=aaaaaaaaaaa", "title": "How to install a garage door opener", "channel": "This Old Garage", "duration": 612},
+    {"_type": "url", "ie_key": "Youtube", "id": "bbbbbbbbbbb", "url": "https://www.youtube.com/watch?v=bbbbbbbbbbb", "title": "[Private video]", "channel": null},
+    {"_type": "url", "ie_key": "Youtube", "id": "ccccccccccc", "url": "https://www.youtube.com/watch?v=ccccccccccc", "title": "[Deleted video]"},
+    {"_type": "url", "ie_key": "Youtube", "id": "ddddddddddd", "url": "https://www.youtube.com/watch?v=ddddddddddd", "title": "Replacing a toilet flapper", "uploader": "Plumbing Pro"},
+    {"_type": "url", "ie_key": "Youtube", "id": "eeeeeeeeeee", "url": "https://www.youtube.com/watch?v=eeeeeeeeeee"},
+    {"_type": "url", "ie_key": "Youtube", "id": "aaaaaaaaaaa", "url": "https://www.youtube.com/watch?v=aaaaaaaaaaa", "title": "duplicate entry"},
+    {"_type": "url", "ie_key": "Youtube", "id": "not-an-id", "title": "bad id"},
+    "garbage"
+  ]
+}

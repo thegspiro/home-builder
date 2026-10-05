@@ -18,7 +18,8 @@ export type TagKind = 'task' | 'skill' | 'topic' | 'trade' | 'tools' | 'other';
 export type VideoSource = 'playlist' | 'csv' | 'paste' | 'manual';
 export type ReviewStatus = 'inbox' | 'sorted';
 export type MetadataStatus = 'pending' | 'ok' | 'unavailable';
-export type JobType = 'playlist_sync' | 'csv_import' | 'paste_import' | 'metadata_refresh';
+export type JobType =
+  'playlist_sync' | 'csv_import' | 'paste_import' | 'metadata_refresh' | 'apply_rules';
 export type JobStatus = 'queued' | 'running' | 'succeeded' | 'failed';
 
 export interface AreaTypesTable {
@@ -117,6 +118,7 @@ export interface TagsTable {
 export interface VideoTagsTable {
   video_id: number;
   tag_id: number;
+  suggested: Bool;
 }
 
 export interface VideoAreaTypesTable {

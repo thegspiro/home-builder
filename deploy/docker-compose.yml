@@ -6,6 +6,7 @@
 # The app publishes no host port. It is reachable only through your existing
 # cloudflared container, which must be attached to the network named by
 # CLOUDFLARED_NETWORK. MySQL sits on an internal network with no outside access.
+# The worker reaches YouTube through its own egress network and accepts no connections.
 name: home-builder
 
 services:
@@ -59,10 +60,41 @@ services:
       - internal
       - cloudflared
 
+  worker:
+    image: ${WORKER_IMAGE:-ghcr.io/thegspiro/home-builder-worker}:${APP_IMAGE_TAG:-latest}
+    restart: unless-stopped
+    depends_on:
+      # The app applies database migrations; the worker starts once it is healthy.
+      app:
+        condition: service_healthy
+    environment:
+      DATABASE_HOST: db
+      DATABASE_PORT: '3306'
+      DATABASE_NAME: ${DATABASE_NAME:-homebuilder}
+      DATABASE_USER: ${DATABASE_USER:-homebuilder}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:?Set DATABASE_PASSWORD in .env}
+      SYNC_TIME: ${SYNC_TIME:-03:00}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      TZ: ${TZ:-UTC}
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - internal
+      # Outbound internet for yt-dlp and YouTube oEmbed. Nothing is published.
+      - egress
+
 networks:
   internal:
     # No route to the outside world; only db and app are attached.
     internal: true
+  egress:
+    # Ordinary bridge network: gives the worker internet access without exposing it.
+    driver: bridge
   cloudflared:
     external: true
     name: ${CLOUDFLARED_NETWORK:?Set CLOUDFLARED_NETWORK in .env to the Docker network your cloudflared container uses}
