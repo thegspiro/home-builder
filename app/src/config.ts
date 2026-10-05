@@ -1,3 +1,6 @@
+import { existsSync } from 'node:fs';
+import { isAbsolute, join } from 'node:path';
+
 /**
  * Runtime configuration, read from environment variables only.
  * Invalid or missing required values fail fast at startup with a clear message.
@@ -28,6 +31,8 @@ export interface AppConfig {
   adminEmails: ReadonlySet<string>;
   access: AccessConfig;
   database: DatabaseConfig;
+  /** Directory with the built web pages (web/dist), or null to serve the API only. */
+  webRoot: string | null;
 }
 
 export class ConfigError extends Error {
@@ -101,6 +106,16 @@ function parseOrigin(raw: string): string {
   return url.origin;
 }
 
+function parseWebRoot(raw: string | undefined): string | null {
+  const value = raw?.trim();
+  if (!value) return null;
+  if (!isAbsolute(value)) throw new ConfigError('WEB_ROOT must be an absolute path');
+  if (!existsSync(join(value, 'index.html'))) {
+    throw new ConfigError(`WEB_ROOT has no index.html: ${value}`);
+  }
+  return value;
+}
+
 export function loadDatabaseConfig(env: Env = process.env): DatabaseConfig {
   return {
     host: required(env, 'DATABASE_HOST'),
@@ -137,6 +152,7 @@ export function loadConfig(env: Env = process.env): AppConfig {
   return {
     host: optional(env, 'HOST', '0.0.0.0'),
     port: integer('PORT', optional(env, 'PORT', '8080'), 1, 65535),
+    webRoot: parseWebRoot(env['WEB_ROOT']),
     logLevel,
     publicOrigin: parseOrigin(required(env, 'PUBLIC_ORIGIN')),
     adminEmails: parseAdminEmails(optional(env, 'ADMIN_EMAILS', '')),

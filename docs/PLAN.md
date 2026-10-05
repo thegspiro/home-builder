@@ -211,7 +211,11 @@ that house's rooms.
 
 **Search**: a query box (MySQL FULLTEXT in boolean mode, with operators
 stripped from user input), tag chips (AND filter), an area filter, and results
-as thumbnail cards.
+as thumbnail cards. Every word is required and matches as a prefix. Words
+shorter than 3 letters, such as "AC", are matched as whole words, because the
+full-text index skips them. Inbox videos are included, shown with their
+suggestions, so a freshly imported library is searchable before it has been
+reviewed.
 
 **List**: a paginated table with title, channel, tags, areas and date added.
 Sort and filter by tag, area or review status. Editors get inline editing and
@@ -227,8 +231,10 @@ panel box on the garage wall). Systems are overlays you can toggle (wires,
 pipes, ducts). A plain, keyboard-accessible area menu is always available and is
 used automatically when WebGL isn't available.
 
-**House settings** (owner/editor): rename, hide or add areas; drag items between
-areas; manage members (owner only).
+**House settings** (owner/editor): rename, hide or add areas; choose the room
+each item is in; manage members (owner only); house tags; add private videos.
+The page picks one room per item. The API accepts several, and the page shows
+"+N more" when an item is placed in more than one room.
 
 **Admin** (global): an inbox of new, unsorted videos with rule suggestions to
 accept; playlist management and "Sync now"; CSV upload; the keyword-rule editor;

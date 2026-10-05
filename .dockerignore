@@ -1,0 +1,13 @@
+# The app image builds from the repository root (docker build -f app/Dockerfile .).
+**/node_modules
+**/dist
+**/coverage
+**/test-results
+**/playwright-report
+**/.env
+**/*.log
+.git
+.github
+deploy
+docs
+worker

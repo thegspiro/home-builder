@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Inbox · Home Videos</title>
+    <script type="module" src="/src/pages/inbox.ts"></script>
+  </head>
+  <body>
+    <header id="site-header" class="site-header"><span class="brand">Home Videos</span></header>
+    <main id="main">
+      <h1 id="inbox-title">Inbox</h1>
+      <p class="muted">
+        New videos wait here. Check the suggested tags, areas and items, then confirm.
+      </p>
+      <p id="count" class="muted"></p>
+      <div id="inbox"></div>
+      <div class="pager"><button id="more" type="button" hidden>Show more</button></div>
+    </main>
+    <div id="status" role="status" aria-live="polite"></div>
+  </body>
+</html>

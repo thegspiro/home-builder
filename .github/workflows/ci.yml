@@ -55,6 +55,46 @@ jobs:
           DATABASE_NAME: homebuilder_test
           DATABASE_USER: homebuilder
           DATABASE_PASSWORD: ci-password
+      - name: Build pages for browser tests
+        working-directory: web
+        run: npm ci && npm run build
+      - name: Install Chromium for Playwright
+        run: npx playwright install --with-deps chromium
+      - name: Browser tests (Playwright)
+        run: npm run test:e2e
+        env:
+          DATABASE_HOST: 127.0.0.1
+          DATABASE_PORT: '3306'
+          DATABASE_NAME: homebuilder_test
+          DATABASE_USER: homebuilder
+          DATABASE_PASSWORD: ci-password
+      - name: Upload Playwright traces
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces
+          path: app/test-results
+          retention-days: 7
+
+  web:
+    name: Web (lint, typecheck, tests)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - run: npm run format:check
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
 
   worker:
     name: Worker (lint, tests)
@@ -109,16 +149,19 @@ jobs:
 
   image:
     name: ${{ matrix.name }} image
-    needs: [app, worker]
+    needs: [app, web, worker]
     runs-on: ubuntu-latest
     strategy:
       matrix:
         include:
           - name: App
-            context: app
+            # Built from the repository root so the image includes web/.
+            context: .
+            dockerfile: app/Dockerfile
             image: home-builder-app
           - name: Worker
             context: worker
+            dockerfile: worker/Dockerfile
             image: home-builder-worker
     permissions:
       contents: read
@@ -145,6 +188,7 @@ jobs:
       - uses: docker/build-push-action@v6
         with:
           context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
           platforms: linux/amd64
           push: ${{ env.PUSH == 'true' }}
           tags: ${{ steps.meta.outputs.tags }}

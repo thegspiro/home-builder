@@ -1,4 +1,5 @@
 import helmet from '@fastify/helmet';
+import fastifyStatic from '@fastify/static';
 import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify';
 import type { Kysely } from 'kysely';
 import { AccessDeniedError, ACCESS_JWT_HEADER, type AccessVerifier } from './auth/access.js';
@@ -9,6 +10,7 @@ import { HttpError } from './http/errors.js';
 import { healthRoutes } from './routes/health.js';
 import { houseRoutes } from './routes/houses.js';
 import { importRoutes } from './routes/imports.js';
+import { libraryRoutes } from './routes/library.js';
 import { playlistRoutes } from './routes/playlists.js';
 import { ruleRoutes } from './routes/rules.js';
 import { videoRoutes } from './routes/videos.js';
@@ -22,7 +24,8 @@ declare module 'fastify' {
 }
 
 export interface AppDependencies {
-  config: Pick<AppConfig, 'publicOrigin' | 'adminEmails' | 'logLevel'>;
+  config: Pick<AppConfig, 'publicOrigin' | 'adminEmails' | 'logLevel'> &
+    Partial<Pick<AppConfig, 'webRoot'>>;
   db: Kysely<Database>;
   verifyAccess: AccessVerifier;
   logger?: FastifyServerOptions['logger'];
@@ -118,10 +121,28 @@ export async function buildApp(deps: AppDependencies): Promise<FastifyInstance> 
     });
   });
 
+  if (deps.config.webRoot) {
+    // The built pages (web/dist). They sit behind the same Access check as the API.
+    await app.register(fastifyStatic, {
+      root: deps.config.webRoot,
+      prefix: '/',
+      index: 'index.html',
+      wildcard: false,
+      setHeaders: (reply, path) => {
+        // Hashed bundles never change; pages must always be revalidated.
+        reply.header(
+          'cache-control',
+          path.includes('/assets/') ? 'public, max-age=31536000, immutable' : 'no-cache',
+        );
+      },
+    });
+  }
+
   await app.register(healthRoutes, { db: deps.db });
   await app.register(meRoutes, { db: deps.db });
   await app.register(houseRoutes, { db: deps.db });
   await app.register(importRoutes, { db: deps.db });
+  await app.register(libraryRoutes, { db: deps.db });
   await app.register(playlistRoutes, { db: deps.db });
   await app.register(ruleRoutes, { db: deps.db });
   await app.register(videoRoutes, { db: deps.db });

@@ -13,9 +13,10 @@ layout, can share one library.
 | Path | What |
 |---|---|
 | `app/` | TypeScript API (Fastify, Kysely, MySQL), migrations and seed catalog |
+| `web/` | Browser pages (plain TypeScript + Vite, no framework): Search, List, Inbox, House settings, Admin. The app serves the built pages. |
 | `worker/` | Python import worker: playlist sync (`yt-dlp`), CSV/paste imports, oEmbed metadata, keyword rules, nightly schedule. See [docs/JOBS.md](docs/JOBS.md) |
 | `deploy/` | `docker-compose.yml` and `.env.example` |
-| `.github/workflows/` | CI: lint, typecheck, unit and MySQL integration tests for both services; publishes both images to GHCR from `main` |
+| `.github/workflows/` | CI: lint, typecheck, unit and MySQL integration tests, Playwright browser tests; publishes both images to GHCR from `main` |
 
 ## Development
 
@@ -33,6 +34,26 @@ docker run -d --name hb-test-mysql -p 3306:3306 \
 DATABASE_HOST=127.0.0.1 DATABASE_NAME=homebuilder_test \
 DATABASE_USER=homebuilder DATABASE_PASSWORD=homebuilder npm run test:integration
 ```
+
+### Web pages and browser tests
+
+```sh
+cd web
+npm ci
+npm run lint && npm run typecheck && npm test
+npm run build            # → web/dist, served by the app when WEB_ROOT points at it
+
+# Browser tests run the real app and pages against the test database (from app/):
+cd ../app
+DATABASE_HOST=127.0.0.1 DATABASE_NAME=homebuilder_test \
+DATABASE_USER=homebuilder DATABASE_PASSWORD=homebuilder npm run test:e2e
+```
+
+Run `npx playwright install chromium` once first, or set `PW_CHROMIUM_EXECUTABLE`
+to an existing Chromium.
+
+The app image builds from the repository root, because it includes the pages:
+`docker build -f app/Dockerfile .`
 
 ### Worker
 

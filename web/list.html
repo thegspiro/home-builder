@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>List · Home Videos</title>
+    <script type="module" src="/src/pages/list.ts"></script>
+  </head>
+  <body>
+    <header id="site-header" class="site-header"><span class="brand">Home Videos</span></header>
+    <main id="main">
+      <h1>All videos</h1>
+      <form id="list-form" class="toolbar">
+        <input
+          id="q"
+          type="search"
+          name="q"
+          placeholder="Filter by words…"
+          aria-label="Filter by words"
+        />
+        <select id="tag" aria-label="Tag"></select>
+        <select id="area" aria-label="Area"></select>
+        <select id="status-filter" aria-label="Review status">
+          <option value="all">All</option>
+          <option value="sorted">Sorted</option>
+          <option value="inbox">In inbox</option>
+        </select>
+        <select id="sort" aria-label="Sort">
+          <option value="newest">Newest first</option>
+          <option value="oldest">Oldest first</option>
+          <option value="title">Title A–Z</option>
+        </select>
+        <button type="submit" class="primary">Apply</button>
+      </form>
+      <div class="table-wrap"><table id="videos"></table></div>
+      <div class="pager">
+        <button id="prev" type="button">Previous</button>
+        <span id="page-info" class="muted"></span>
+        <button id="next" type="button">Next</button>
+      </div>
+    </main>
+    <div id="status" role="status" aria-live="polite"></div>
+  </body>
+</html>
