@@ -5,7 +5,9 @@ import { AccessDeniedError, ACCESS_JWT_HEADER, type AccessVerifier } from './aut
 import { ForbiddenError, type Principal } from './auth/policy.js';
 import type { AppConfig } from './config.js';
 import type { Database } from './db/schema.js';
+import { HttpError } from './http/errors.js';
 import { healthRoutes } from './routes/health.js';
+import { houseRoutes } from './routes/houses.js';
 import { meRoutes } from './routes/me.js';
 
 declare module 'fastify' {
@@ -94,6 +96,9 @@ export async function buildApp(deps: AppDependencies): Promise<FastifyInstance> 
     if (error instanceof ForbiddenError) {
       return reply.code(403).send({ error: 'forbidden' });
     }
+    if (error instanceof HttpError) {
+      return reply.code(error.statusCode).send({ error: error.code, message: error.message });
+    }
     const statusCode =
       typeof (error as { statusCode?: unknown }).statusCode === 'number'
         ? (error as { statusCode: number }).statusCode
@@ -111,6 +116,7 @@ export async function buildApp(deps: AppDependencies): Promise<FastifyInstance> 
 
   await app.register(healthRoutes, { db: deps.db });
   await app.register(meRoutes, { db: deps.db });
+  await app.register(houseRoutes, { db: deps.db });
 
   return app;
 }

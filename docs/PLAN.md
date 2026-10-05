@@ -189,6 +189,7 @@ Every migration is tested up → down → up against MySQL 8.4 in CI.
 | Browse shared library | ✓ | ✓ | ✓ | ✓ |
 | Edit shared library (videos, shared tags, rules, area types, items, playlists, CSV) | ✓ | | | |
 | Create / delete houses | ✓ | | | |
+| Rename the house | ✓ | ✓ | | |
 | Manage house members | ✓ | ✓ | | |
 | Add/rename/hide house areas, move items | ✓ | ✓ | ✓ | |
 | Add/edit house-private videos (one URL, pasted list, or CSV) | ✓ | ✓ | ✓ | |
@@ -197,6 +198,10 @@ Every migration is tested up → down → up against MySQL 8.4 in CI.
 
 A user who isn't a member of any house can still browse the shared library and
 the default layout (read-only).
+
+A house the caller can't see (not a member, not an admin) answers **404**, the
+same as a house that doesn't exist, so house IDs can't be probed. A member
+without the right role gets **403**. A house always keeps at least one owner.
 
 ## 7. Features by view
 

@@ -21,6 +21,8 @@ export type LibraryAction =
 export type HouseAction =
   /** See the house, its layout and its private videos. */
   | 'house.view'
+  /** Rename the house. */
+  | 'house.settings.edit'
   /** Add, change or remove house members. */
   | 'house.members.manage'
   /** Add, rename or hide areas; move or hide items. */
@@ -34,6 +36,7 @@ export type Action = LibraryAction | HouseAction;
 
 const HOUSE_ACTIONS: Readonly<Record<HouseAction, readonly HouseRole[]>> = {
   'house.view': ['owner', 'editor', 'viewer'],
+  'house.settings.edit': ['owner'],
   'house.members.manage': ['owner'],
   'house.layout.edit': ['owner', 'editor'],
   'house.videos.edit': ['owner', 'editor'],

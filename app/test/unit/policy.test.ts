@@ -29,6 +29,10 @@ const MATRIX: [Action, Record<Actor, boolean>][] = [
     { admin: true, owner: false, editor: false, viewer: false, 'non-member': false },
   ],
   [
+    'house.settings.edit',
+    { admin: true, owner: true, editor: false, viewer: false, 'non-member': false },
+  ],
+  [
     'house.members.manage',
     { admin: true, owner: true, editor: false, viewer: false, 'non-member': false },
   ],
