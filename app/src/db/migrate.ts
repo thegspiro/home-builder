@@ -2,6 +2,7 @@ import type { Kysely } from 'kysely';
 import { Migrator, type Migration, type MigrationResultSet } from 'kysely/migration';
 import * as m0001 from './migrations/0001_initial_schema.js';
 import * as m0002 from './migrations/0002_seed_catalog.js';
+import * as m0003 from './migrations/0003_inbox_suggestions.js';
 
 /**
  * Migrations are registered explicitly (not discovered from the file system) so the
@@ -10,6 +11,7 @@ import * as m0002 from './migrations/0002_seed_catalog.js';
 export const MIGRATIONS: Readonly<Record<string, Migration>> = {
   '0001_initial_schema': m0001,
   '0002_seed_catalog': m0002,
+  '0003_inbox_suggestions': m0003,
 };
 
 export function createMigrator<DB>(db: Kysely<DB>): Migrator {

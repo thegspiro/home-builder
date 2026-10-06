@@ -1,0 +1,23 @@
+[project]
+name = "homebuilder-worker"
+version = "0.1.0"
+description = "Import worker for the home builder video library"
+requires-python = ">=3.11"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "SIM", "RUF"]
+ignore = []
+
+[tool.ruff.lint.per-file-ignores]
+# assert is how pytest checks; test fixtures use fixed fake credentials.
+"tests/**" = ["S101", "S105", "S106"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+markers = ["integration: needs a disposable MySQL database (DATABASE_* env vars)"]

@@ -1,0 +1,6 @@
+# Runtime dependencies, pinned. yt-dlp needs regular updates as YouTube changes;
+# bump it here and rebuild the image when playlist sync starts failing.
+PyMySQL==1.2.3
+requests==2.34.2
+tzdata==2026.5
+yt-dlp==2026.8.19

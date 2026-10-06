@@ -44,3 +44,21 @@ export async function requireHouse(
   assertCan(principal, action, role);
   return { role };
 }
+
+/**
+ * Authorizes work on either the shared library (`houseId` undefined or null: needs
+ * `library.edit`) or one house's private content (needs `houseAction` in that house).
+ */
+export async function requireScope(
+  db: Db,
+  principal: Principal,
+  houseId: number | null | undefined,
+  houseAction: HouseAction,
+): Promise<number | null> {
+  if (houseId === undefined || houseId === null) {
+    assertCan(principal, 'library.edit');
+    return null;
+  }
+  await requireHouse(db, principal, houseId, houseAction);
+  return houseId;
+}

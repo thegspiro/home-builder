@@ -114,7 +114,7 @@ for that house only.
 | `house_hidden_items` | (`house_id`, `item_id`): items this house doesn't have (e.g. no well), including whole-house items |
 | `videos` | `id`, `youtube_id` (11 characters, validated), `house_id` NULL (NULL = shared, set = private), `title`, `channel_name`, `thumbnail_url`, `notes`, `source` ENUM(playlist,csv,paste,manual), `review_status` ENUM(inbox,sorted), `metadata_status` ENUM(pending,ok,unavailable), timestamps; UNIQUE(`youtube_id`, `house_scope`)\*; FULLTEXT(`title`,`channel_name`,`notes`) |
 | `tags` | `id`, `house_id` NULL (NULL = shared tag, set = house tag), `slug`, `name`, `kind` ENUM(task,skill,topic,trade,tools,other); UNIQUE(`slug`, `house_scope`) |
-| `video_tags` | (`video_id`, `tag_id`) |
+| `video_tags` | (`video_id`, `tag_id`), `suggested` BOOL (added in migration 0003) |
 | `video_area_types` | (`video_id`, `area_type_id`), `suggested` BOOL |
 | `video_items` | (`video_id`, `item_id`), `suggested` BOOL |
 | `video_house_areas` | (`video_id`, `house_area_id`): private videos only, enforced in the API |
@@ -304,5 +304,7 @@ and management of tags, area types and items.
 4. **Open: Docker network name** for `cloudflared`. Compose reads it from
    `CLOUDFLARED_NETWORK` in `.env`, so this only needs to be filled in at
    deploy time.
-5. **Nightly sync time:** 03:00 server local time (overridable with
-   `SYNC_CRON`).
+5. **Nightly sync time:** 03:00 in the worker's `TZ`, overridable with
+   `SYNC_TIME` (24-hour `HH:MM`). The plan originally said `SYNC_CRON`. A
+   single daily time doesn't need cron syntax or the extra dependency that
+   parsing it would bring. See [JOBS.md](JOBS.md) for how the job queue works.

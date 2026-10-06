@@ -56,15 +56,75 @@ jobs:
           DATABASE_USER: homebuilder
           DATABASE_PASSWORD: ci-password
 
-  image:
-    name: App image
-    needs: app
+  worker:
+    name: Worker (lint, tests)
     runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: ci-root-password
+          MYSQL_DATABASE: homebuilder_test
+          MYSQL_USER: homebuilder
+          MYSQL_PASSWORD: ci-password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -u root -pci-root-password --silent"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=30
+    env:
+      DATABASE_HOST: 127.0.0.1
+      DATABASE_PORT: '3306'
+      DATABASE_NAME: homebuilder_test
+      DATABASE_USER: homebuilder
+      DATABASE_PASSWORD: ci-password
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: worker/requirements-dev.txt
+      - run: pip install -r requirements-dev.txt
+        working-directory: worker
+      - run: ruff format --check .
+        working-directory: worker
+      - run: ruff check .
+        working-directory: worker
+      - run: pytest tests/unit -q
+        working-directory: worker
+      # The schema comes from the app's migrations, the single source of truth.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - name: Apply database migrations
+        working-directory: app
+        run: npm ci && npm run build && node dist/cli/migrate.js
+      - run: pytest tests/integration -q -W error::DeprecationWarning
+        working-directory: worker
+
+  image:
+    name: ${{ matrix.name }} image
+    needs: [app, worker]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - name: App
+            context: app
+            image: home-builder-app
+          - name: Worker
+            context: worker
+            image: home-builder-worker
     permissions:
       contents: read
       packages: write
     env:
-      # Pushed only from main; pull requests just prove the image builds.
+      # Pushed only from main; pull requests just prove the images build.
       PUSH: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     steps:
       - uses: actions/checkout@v4
@@ -78,16 +138,16 @@ jobs:
       - id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ github.repository_owner }}/home-builder-app
+          images: ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
             type=sha,format=short
       - uses: docker/build-push-action@v6
         with:
-          context: app
+          context: ${{ matrix.context }}
           platforms: linux/amd64
           push: ${{ env.PUSH == 'true' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }}

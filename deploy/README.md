@@ -1,8 +1,15 @@
 # Deploying
 
-The stack is two containers: `app` (the API, image built by CI and published to
-GHCR) and `db` (MySQL 8.4). The app publishes **no host port**. It is reached
-only through your existing `cloudflared` container, behind Cloudflare Access.
+The stack is three containers. CI builds and publishes the `app` and `worker`
+images to GHCR.
+
+- `app`: the API.
+- `worker`: imports videos, syncs playlists nightly and fetches titles.
+- `db`: MySQL 8.4.
+
+The app publishes **no host port**. It is reached only through your existing
+`cloudflared` container, behind Cloudflare Access. The worker needs outbound
+internet access to reach YouTube, and accepts no connections.
 
 ## 1. Cloudflare
 
@@ -29,6 +36,19 @@ only through your existing `cloudflared` container, behind Cloudflare Access.
 
 If the GHCR package is private, run `docker login ghcr.io` on the server first,
 using a GitHub token with `read:packages`.
+
+## Playlist sync
+
+Add your playlist in the app (or `POST /api/playlists`). Then:
+
+- The worker syncs it right away, and every day at `SYNC_TIME` (in `TZ`).
+- `yt-dlp` can read **public and unlisted** playlists without a Google login.
+  For a **private** playlist, export it with Google Takeout and use the CSV
+  import instead.
+- When a sync starts failing with `yt-dlp` errors, YouTube has usually changed
+  something. Update to the latest image, which carries a newer `yt-dlp`.
+
+Watch the worker with `docker compose logs -f worker`.
 
 ## Updating
 
