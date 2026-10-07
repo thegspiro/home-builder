@@ -1,3 +1,6 @@
+import { mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { ConfigError, loadConfig, loadDatabaseConfig, parseAdminEmails } from '../../src/config.js';
 
@@ -69,6 +72,24 @@ describe('loadConfig', () => {
     expect(
       loadDatabaseConfig({ DATABASE_HOST, DATABASE_NAME, DATABASE_USER, DATABASE_PASSWORD }),
     ).toMatchObject({ host: 'db', database: 'homebuilder' });
+  });
+});
+
+describe('WEB_ROOT', () => {
+  it('is optional', () => {
+    expect(loadConfig(VALID_ENV).webRoot).toBeNull();
+  });
+
+  it('accepts an absolute directory containing index.html', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'web-'));
+    writeFileSync(join(dir, 'index.html'), '<!doctype html>');
+    expect(loadConfig({ ...VALID_ENV, WEB_ROOT: dir }).webRoot).toBe(dir);
+  });
+
+  it('rejects relative paths and directories without pages', () => {
+    expect(() => loadConfig({ ...VALID_ENV, WEB_ROOT: 'web/dist' })).toThrow(ConfigError);
+    const empty = mkdtempSync(join(tmpdir(), 'web-'));
+    expect(() => loadConfig({ ...VALID_ENV, WEB_ROOT: empty })).toThrow(/no index.html/);
   });
 });
 

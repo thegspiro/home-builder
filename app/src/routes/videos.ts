@@ -12,44 +12,15 @@ import type { FastifyPluginCallback } from 'fastify';
 import type { Kysely, Transaction } from 'kysely';
 import { writeAudit } from '../audit.js';
 import { assertCan, type Principal } from '../auth/policy.js';
-import type { Database, MetadataStatus, VideoSource } from '../db/schema.js';
+import type { Database } from '../db/schema.js';
 import { NotFoundError, ValidationError } from '../http/errors.js';
 import { requireHouse, requireScope } from '../houses/access.js';
+import { toVideoViews, VIDEO_COLUMNS, type VideoView } from '../videos/view.js';
 import { ID, ID_LIST } from './schemas.js';
 
 type Db = Kysely<Database>;
 
-interface Link {
-  id: number;
-  name: string;
-  suggested: boolean;
-}
-
-export interface InboxVideo {
-  id: number;
-  youtubeId: string;
-  houseId: number | null;
-  title: string | null;
-  channelName: string | null;
-  thumbnailUrl: string | null;
-  source: VideoSource;
-  metadataStatus: MetadataStatus;
-  createdAt: Date;
-  tags: Link[];
-  areaTypes: Link[];
-  items: Link[];
-  houseAreas: { id: number; name: string }[];
-}
-
-function groupBy<T extends { video_id: number }>(rows: T[]): Map<number, T[]> {
-  const map = new Map<number, T[]>();
-  for (const row of rows) {
-    const list = map.get(row.video_id) ?? [];
-    list.push(row);
-    map.set(row.video_id, list);
-  }
-  return map;
-}
+export type InboxVideo = VideoView;
 
 async function loadInbox(
   db: Db,
@@ -62,80 +33,13 @@ async function loadInbox(
     .where('review_status', '=', 'inbox')
     .where('house_id', houseId === null ? 'is' : '=', houseId);
   const totalRow = await scoped.select((eb) => eb.fn.countAll<number>().as('n')).executeTakeFirst();
-  const videos = await scoped
-    .select([
-      'id',
-      'youtube_id',
-      'house_id',
-      'title',
-      'channel_name',
-      'thumbnail_url',
-      'source',
-      'metadata_status',
-      'created_at',
-    ])
+  const rows = await scoped
+    .select([...VIDEO_COLUMNS])
     .orderBy('id', 'desc')
     .limit(limit)
     .offset(offset)
     .execute();
-  const ids = videos.map((v) => v.id);
-  if (ids.length === 0) return { total: Number(totalRow?.n ?? 0), videos: [] };
-
-  const [tags, areas, items, houseAreas] = await Promise.all([
-    db
-      .selectFrom('video_tags as vt')
-      .innerJoin('tags as t', 't.id', 'vt.tag_id')
-      .select(['vt.video_id', 't.id', 't.name', 'vt.suggested'])
-      .where('vt.video_id', 'in', ids)
-      .orderBy('t.name')
-      .execute(),
-    db
-      .selectFrom('video_area_types as va')
-      .innerJoin('area_types as a', 'a.id', 'va.area_type_id')
-      .select(['va.video_id', 'a.id', 'a.name', 'va.suggested'])
-      .where('va.video_id', 'in', ids)
-      .orderBy('a.sort_order')
-      .execute(),
-    db
-      .selectFrom('video_items as vi')
-      .innerJoin('items as i', 'i.id', 'vi.item_id')
-      .select(['vi.video_id', 'i.id', 'i.name', 'vi.suggested'])
-      .where('vi.video_id', 'in', ids)
-      .orderBy('i.sort_order')
-      .execute(),
-    db
-      .selectFrom('video_house_areas as vh')
-      .innerJoin('house_areas as h', 'h.id', 'vh.house_area_id')
-      .select(['vh.video_id', 'h.id', 'h.name'])
-      .where('vh.video_id', 'in', ids)
-      .orderBy('h.sort_order')
-      .execute(),
-  ]);
-  const toLinks = (rows: { id: number; name: string; suggested: number }[] = []): Link[] =>
-    rows.map((r) => ({ id: r.id, name: r.name, suggested: r.suggested === 1 }));
-  const tagMap = groupBy(tags);
-  const areaMap = groupBy(areas);
-  const itemMap = groupBy(items);
-  const houseAreaMap = groupBy(houseAreas);
-
-  return {
-    total: Number(totalRow?.n ?? 0),
-    videos: videos.map((v) => ({
-      id: v.id,
-      youtubeId: v.youtube_id,
-      houseId: v.house_id,
-      title: v.title,
-      channelName: v.channel_name,
-      thumbnailUrl: v.thumbnail_url,
-      source: v.source,
-      metadataStatus: v.metadata_status,
-      createdAt: v.created_at,
-      tags: toLinks(tagMap.get(v.id)),
-      areaTypes: toLinks(areaMap.get(v.id)),
-      items: toLinks(itemMap.get(v.id)),
-      houseAreas: (houseAreaMap.get(v.id) ?? []).map((h) => ({ id: h.id, name: h.name })),
-    })),
-  };
+  return { total: Number(totalRow?.n ?? 0), videos: await toVideoViews(db, rows) };
 }
 
 /** Loads a video and checks the caller may edit it. */
