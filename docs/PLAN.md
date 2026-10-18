@@ -1,6 +1,6 @@
 # Home Builder Video Library — Implementation Plan
 
-Status: **Agreed. One open item: the `cloudflared` Docker network name (section 11). It doesn't block Phase 1.**
+Status: **Agreed. No open items.**
 
 ## 1. Goal
 
@@ -307,9 +307,9 @@ and management of tags, area types and items.
    only the shared library.
 3. **Appdata path:** `/mnt/user/appdata/home-builder/` (overridable with
    `APPDATA_DIR`).
-4. **Open: Docker network name** for `cloudflared`. Compose reads it from
-   `CLOUDFLARED_NETWORK` in `.env`, so this only needs to be filled in at
-   deploy time.
+4. **Docker network name** for `cloudflared`: `Unraid-Cloudflared-Tunnel`.
+   Compose reads it from `CLOUDFLARED_NETWORK` in `.env`; `.env.example` is
+   pre-filled with it.
 5. **Nightly sync time:** 03:00 in the worker's `TZ`, overridable with
    `SYNC_TIME` (24-hour `HH:MM`). The plan originally said `SYNC_CRON`. A
    single daily time doesn't need cron syntax or the extra dependency that
