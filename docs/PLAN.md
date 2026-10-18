@@ -222,14 +222,25 @@ Sort and filter by tag, area or review status. Editors get inline editing and
 bulk assignment within their permissions.
 
 **3D house**: an orbit camera around a cutaway ("dollhouse") house built from
-fixed **zones** (ground-floor rooms, upstairs, basement, attic, garage, exterior
-faces, yard, detached workshop shed). Each house area is drawn in a zone. Custom
-areas share a zone and appear as labeled sub-spaces. Hovering highlights an
-area. Clicking flies the camera in and opens a side panel with the area's
-videos. Placed items appear as clickable objects in their room (for example, a
-panel box on the garage wall). Systems are overlays you can toggle (wires,
-pipes, ducts). A plain, keyboard-accessible area menu is always available and is
-used automatically when WebGL isn't available.
+fixed **zones** (ground-floor rooms, basement, attic, garage, outside walls,
+roof, foundation, deck, driveway, yard, detached workshop shed). Each house area
+is drawn in a zone. Areas that share a zone (custom areas, the three workshop
+areas in the shed) split it into labeled side-by-side parts. Hovering
+highlights an area. Clicking flies the camera in and opens a side panel with the
+area's videos. Placed items appear as clickable objects in their room (for
+example, a panel box on the garage wall). Systems are overlays you can toggle
+(wires, pipes, ducts). Their lines start at the system's hub (main panel, water
+shutoff, furnace) wherever the house placed it. A plain, keyboard-accessible
+area menu is always available and is used automatically when WebGL isn't
+available.
+
+As built in Phase 5, the model has four **levels**, chosen with buttons above
+it: Outside (walls, roof, foundation), Attic, Main floor (the default) and
+Basement. The yard, driveway, deck and shed are shown on every level except the
+basement. Each level shows only the zones drawn at that height, so nothing
+blocks the rooms you want to click. The page is `model.html`. The selection and
+level are kept in the URL (`?select=area:12&view=main`), so links open the same
+room.
 
 **House settings** (owner/editor): rename, hide or add areas; choose the room
 each item is in; manage members (owner only); house tags; add private videos.

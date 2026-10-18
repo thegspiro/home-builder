@@ -1,12 +1,12 @@
 /** Test-side helpers: sign in a browser context, call the API, reach the database. */
 import { readFileSync } from 'node:fs';
-import type { BrowserContext } from '@playwright/test';
+import type { BrowserContext, Page } from '@playwright/test';
 import { importJWK, SignJWT, type JWK } from 'jose';
 import type { Kysely } from 'kysely';
 import type { Database } from '../../src/db/schema.js';
 import { TEST_ACCESS } from '../helpers/access-tokens.js';
 import { createTestDb } from '../integration/db.js';
-import { BASE_URL, E2E_STATE_FILE } from './config.js';
+import { ADMIN, BASE_URL, E2E_STATE_FILE } from './config.js';
 
 export { ADMIN, BASE_URL } from './config.js';
 
@@ -57,4 +57,56 @@ export async function api<T>(
 
 export function testDb(): Kysely<Database> {
   return createTestDb();
+}
+
+/** Fails the test on any script error or CSP violation in the page. */
+export function watchErrors(page: Page): string[] {
+  const errors: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  page.on('console', (message) => {
+    if (message.type() === 'error' && !message.text().includes('net::ERR_FAILED'))
+      errors.push(message.text());
+  });
+  return errors;
+}
+
+export async function catalogId(
+  db: Kysely<Database>,
+  table: 'tags' | 'area_types' | 'items',
+  slug: string,
+): Promise<number> {
+  return (
+    await db.selectFrom(table).select('id').where('slug', '=', slug).executeTakeFirstOrThrow()
+  ).id;
+}
+
+/** A shared video with its metadata already fetched. */
+export async function addVideo(
+  db: Kysely<Database>,
+  youtubeId: string,
+  title: string,
+  review: 'inbox' | 'sorted' = 'sorted',
+): Promise<number> {
+  const result = await db
+    .insertInto('videos')
+    .values({
+      youtube_id: youtubeId,
+      title,
+      thumbnail_url: `https://i.ytimg.com/vi/${youtubeId}/hqdefault.jpg`,
+      source: 'manual',
+      added_by: ADMIN,
+      metadata_status: 'ok',
+      review_status: review,
+    })
+    .executeTakeFirstOrThrow();
+  return Number(result.insertId);
+}
+
+/** Removes what earlier browser tests created, keeping the seeded catalog. */
+export async function resetContent(db: Kysely<Database>): Promise<void> {
+  for (const table of ['videos', 'keyword_rules', 'playlists', 'import_jobs'] as const) {
+    await db.deleteFrom(table).execute();
+  }
+  await db.deleteFrom('tags').where('house_id', 'is not', null).execute();
+  await db.deleteFrom('houses').execute();
 }

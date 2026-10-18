@@ -1,8 +1,18 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import type { HouseDetail } from '../../src/houses/service.js';
 import type { Kysely } from 'kysely';
 import type { Database } from '../../src/db/schema.js';
-import { ADMIN, api, BASE_URL, signIn, testDb } from './harness.js';
+import {
+  ADMIN,
+  addVideo as addVideoTo,
+  api,
+  BASE_URL,
+  catalogId,
+  resetContent,
+  signIn,
+  testDb,
+  watchErrors,
+} from './harness.js';
 
 const OWNER = 'owner@example.com';
 const VIEWER = 'viewer@example.com';
@@ -11,51 +21,18 @@ let db: Kysely<Database>;
 let houseId: number;
 let house: HouseDetail;
 
-async function id(table: 'tags' | 'area_types' | 'items', slug: string): Promise<number> {
-  return (
-    await db.selectFrom(table).select('id').where('slug', '=', slug).executeTakeFirstOrThrow()
-  ).id;
+function id(table: 'tags' | 'area_types' | 'items', slug: string): Promise<number> {
+  return catalogId(db, table, slug);
 }
 
-async function addVideo(
-  youtubeId: string,
-  title: string,
-  review: 'inbox' | 'sorted' = 'sorted',
-): Promise<number> {
-  const result = await db
-    .insertInto('videos')
-    .values({
-      youtube_id: youtubeId,
-      title,
-      thumbnail_url: `https://i.ytimg.com/vi/${youtubeId}/hqdefault.jpg`,
-      source: 'manual',
-      added_by: ADMIN,
-      metadata_status: 'ok',
-      review_status: review,
-    })
-    .executeTakeFirstOrThrow();
-  return Number(result.insertId);
-}
-
-/** Fails the test on any script error or CSP violation in the page. */
-function watchErrors(page: Page): string[] {
-  const errors: string[] = [];
-  page.on('pageerror', (error) => errors.push(error.message));
-  page.on('console', (message) => {
-    if (message.type() === 'error' && !message.text().includes('net::ERR_FAILED'))
-      errors.push(message.text());
-  });
-  return errors;
+function addVideo(youtubeId: string, title: string, review?: 'inbox' | 'sorted'): Promise<number> {
+  return addVideoTo(db, youtubeId, title, review);
 }
 
 test.beforeAll(async () => {
   db = testDb();
   // Start clean: Playwright re-runs beforeAll in a fresh worker after a failure.
-  for (const table of ['videos', 'keyword_rules', 'playlists', 'import_jobs'] as const) {
-    await db.deleteFrom(table).execute();
-  }
-  await db.deleteFrom('tags').where('house_id', 'is not', null).execute();
-  await db.deleteFrom('houses').execute();
+  await resetContent(db);
   houseId = (
     await api<{ id: number }>(ADMIN, 'POST', '/api/houses', { name: 'Maple St', ownerEmail: OWNER })
   ).id;
