@@ -34,6 +34,23 @@ export interface AppDependencies {
 /** Paths reachable without a Cloudflare Access token (used by the Docker health check). */
 const PUBLIC_PATHS = new Set(['/healthz']);
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
+/**
+ * Browser features the pages never use are switched off, for the page and any frame in
+ * it. Fullscreen, picture-in-picture and encrypted media are left alone: the YouTube
+ * player needs them.
+ */
+export const PERMISSIONS_POLICY = [
+  'accelerometer=()',
+  'camera=()',
+  'display-capture=()',
+  'geolocation=()',
+  'gyroscope=()',
+  'magnetometer=()',
+  'microphone=()',
+  'midi=()',
+  'payment=()',
+  'usb=()',
+].join(', ');
 
 export async function buildApp(deps: AppDependencies): Promise<FastifyInstance> {
   const app = Fastify({
@@ -65,6 +82,10 @@ export async function buildApp(deps: AppDependencies): Promise<FastifyInstance> 
     // HSTS is applied by Cloudflare at the edge.
     hsts: false,
     crossOriginEmbedderPolicy: false,
+  });
+
+  app.addHook('onSend', async (_request, reply) => {
+    reply.header('permissions-policy', PERMISSIONS_POLICY);
   });
 
   app.decorateRequest('principal', null as unknown as Principal);
