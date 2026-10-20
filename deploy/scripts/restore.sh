@@ -50,7 +50,7 @@ FILE=$1
 
 [ -f "$COMPOSE_DIR/docker-compose.yml" ] || fail "no docker-compose.yml in $COMPOSE_DIR (use -d)"
 [ -f "$COMPOSE_DIR/.env" ] || fail "no .env in $COMPOSE_DIR"
-[ -f "$FILE" ] && [ -r "$FILE" ] || fail "cannot read $FILE"
+if [ ! -f "$FILE" ] || [ ! -r "$FILE" ]; then fail "cannot read $FILE"; fi
 
 compose() {
     docker compose --project-directory "$COMPOSE_DIR" -f "$COMPOSE_DIR/docker-compose.yml" "$@"

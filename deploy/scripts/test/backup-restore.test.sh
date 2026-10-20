@@ -64,7 +64,11 @@ sql() {
 }
 
 echo "# starting MySQL"
-compose up -d --wait db app >/dev/null 2>&1
+if ! output=$(compose up -d --wait db app 2>&1); then
+    printf '%s\n' "$output" >&2
+    echo "FAIL - could not start the test stack" >&2
+    exit 1
+fi
 
 sql <<'SQL'
 CREATE TABLE kysely_migration (name VARCHAR(255) PRIMARY KEY, timestamp VARCHAR(255) NOT NULL);
