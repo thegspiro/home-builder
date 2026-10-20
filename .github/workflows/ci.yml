@@ -147,9 +147,20 @@ jobs:
       - run: pytest tests/integration -q -W error::DeprecationWarning
         working-directory: worker
 
+  scripts:
+    name: Deploy scripts (shellcheck, backup/restore)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: ShellCheck (POSIX sh)
+        run: shellcheck --shell=sh deploy/scripts/*.sh deploy/scripts/test/*.sh
+      # Starts a throwaway MySQL 8.4 compose project, backs it up, changes it, restores it.
+      - name: Backup and restore against MySQL 8.4
+        run: sh deploy/scripts/test/backup-restore.test.sh
+
   image:
     name: ${{ matrix.name }} image
-    needs: [app, web, worker]
+    needs: [app, web, worker, scripts]
     runs-on: ubuntu-latest
     strategy:
       matrix:

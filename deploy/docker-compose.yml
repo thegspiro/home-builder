@@ -9,10 +9,22 @@
 # The worker reaches YouTube through its own egress network and accepts no connections.
 name: home-builder
 
+# Docker keeps container logs forever by default, which slowly fills Unraid's docker.img.
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: 10m
+    max-file: '3'
+
 services:
   db:
     image: mysql:8.4
     restart: unless-stopped
+    logging: *logging
+    # Give InnoDB time for a clean shutdown (Docker's default is 10 seconds).
+    stop_grace_period: 1m
+    security_opt:
+      - no-new-privileges:true
     environment:
       MYSQL_DATABASE: ${DATABASE_NAME:-homebuilder}
       MYSQL_USER: ${DATABASE_USER:-homebuilder}
@@ -34,6 +46,7 @@ services:
   app:
     image: ${APP_IMAGE:-ghcr.io/thegspiro/home-builder-app}:${APP_IMAGE_TAG:-latest}
     restart: unless-stopped
+    logging: *logging
     depends_on:
       db:
         condition: service_healthy
@@ -63,6 +76,7 @@ services:
   worker:
     image: ${WORKER_IMAGE:-ghcr.io/thegspiro/home-builder-worker}:${APP_IMAGE_TAG:-latest}
     restart: unless-stopped
+    logging: *logging
     depends_on:
       # The app applies database migrations; the worker starts once it is healthy.
       app:
