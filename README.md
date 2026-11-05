@@ -13,7 +13,7 @@ layout, can share one library.
 | Path | What |
 |---|---|
 | `app/` | TypeScript API (Fastify, Kysely, MySQL), migrations and seed catalog |
-| `web/` | Browser pages (plain TypeScript + Vite, no framework): Search, List, Inbox, House settings, Admin. The app serves the built pages. |
+| `web/` | Browser pages (plain TypeScript + Vite, no framework; Three.js for the 3D house): Search, List, 3D house, Inbox, House settings, Admin. The app serves the built pages. |
 | `worker/` | Python import worker: playlist sync (`yt-dlp`), CSV/paste imports, oEmbed metadata, keyword rules, nightly schedule. See [docs/JOBS.md](docs/JOBS.md) |
 | `deploy/` | `docker-compose.yml` and `.env.example` |
 | `.github/workflows/` | CI: lint, typecheck, unit and MySQL integration tests, Playwright browser tests; publishes both images to GHCR from `main` |

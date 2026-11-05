@@ -433,3 +433,167 @@ button.link {
 .house-picker select {
   margin-left: 0.25rem;
 }
+
+/* 3D house */
+main.model-page {
+  max-width: 1600px;
+}
+
+.model-layout {
+  display: grid;
+  grid-template-columns: 13rem minmax(0, 1fr) 22rem;
+  gap: 1rem;
+  align-items: start;
+}
+
+@media (max-width: 1100px) {
+  .model-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .model-layout .area-menu {
+    order: 3;
+  }
+}
+
+.model-viewport {
+  position: relative;
+  height: min(72vh, 680px);
+  min-height: 320px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.model-viewport[data-mode='menu'] {
+  height: auto;
+  min-height: 0;
+  padding: 1rem;
+}
+
+.model-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+
+.model-labels {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.model-label {
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  background: rgb(255 255 255 / 0.85);
+  color: #1f2328;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.model-tip {
+  position: absolute;
+  pointer-events: none;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  background: #1f2328;
+  color: #ffffff;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.segmented {
+  display: inline-flex;
+}
+
+.segmented button {
+  border-radius: 0;
+}
+
+.segmented button:first-child {
+  border-radius: var(--radius) 0 0 var(--radius);
+}
+
+.segmented button:last-child {
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+
+.segmented button[aria-pressed='true'] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-contrast);
+}
+
+.overlays {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0.25rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.overlays legend {
+  padding: 0 0.25rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.overlay-toggle.electrical {
+  border-bottom: 3px solid #f2c230;
+}
+
+.overlay-toggle.plumbing {
+  border-bottom: 3px solid #2f7fd8;
+}
+
+.overlay-toggle.hvac {
+  border-bottom: 3px solid #8c96a3;
+}
+
+.area-menu h2 {
+  font-size: 0.95rem;
+  margin: 0.75rem 0 0.25rem;
+}
+
+.area-menu ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.menu-item {
+  width: 100%;
+  border: 0;
+  background: none;
+  padding: 0.25rem 0.5rem;
+  text-align: left;
+  color: var(--text);
+}
+
+.menu-item:hover,
+.menu-item:focus-visible {
+  background: var(--chip);
+}
+
+.menu-item[aria-current='true'] {
+  background: var(--chip);
+  font-weight: 600;
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.model-panel h2 {
+  margin-top: 0;
+}
+
+.model-panel h3.small {
+  font-size: 0.9rem;
+  margin: 0.5rem 0 0.25rem;
+}
+
+.grid.compact {
+  grid-template-columns: minmax(0, 1fr);
+}

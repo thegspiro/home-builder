@@ -16,6 +16,7 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/node": "^22.20.5",
+    "@types/three": "^0.186.0",
     "eslint": "^10.12.0",
     "jsdom": "^29.1.1",
     "prettier": "^3.9.9",
@@ -23,5 +24,8 @@
     "typescript-eslint": "^8.71.1",
     "vite": "^8.3.2",
     "vitest": "^5.0.3"
+  },
+  "dependencies": {
+    "three": "^0.186.1"
   }
 }

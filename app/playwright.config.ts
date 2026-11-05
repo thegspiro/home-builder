@@ -29,8 +29,12 @@ export default defineConfig({
     ...devices['Desktop Chrome'],
     baseURL: BASE_URL,
     trace: 'retain-on-failure',
-    launchOptions: process.env['PW_CHROMIUM_EXECUTABLE']
-      ? { executablePath: process.env['PW_CHROMIUM_EXECUTABLE'] }
-      : {},
+    launchOptions: {
+      // Headless Chromium has no GPU; allow its software WebGL for the 3D house page.
+      args: ['--enable-unsafe-swiftshader', '--use-angle=swiftshader'],
+      ...(process.env['PW_CHROMIUM_EXECUTABLE']
+        ? { executablePath: process.env['PW_CHROMIUM_EXECUTABLE'] }
+        : {}),
+    },
   },
 });

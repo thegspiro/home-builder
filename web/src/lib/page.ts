@@ -12,8 +12,9 @@ interface NavLink {
 const NAV: NavLink[] = [
   { href: '/', label: 'Search', show: () => true },
   { href: '/list.html', label: 'List', show: () => true },
+  { href: '/model.html', label: '3D house', show: (s) => s.house !== null },
   { href: '/inbox.html', label: 'Inbox', show: (s) => s.me.isAdmin || canEditHouse(s) },
-  { href: '/house.html', label: 'House', show: (s) => s.house !== null },
+  { href: '/house.html', label: 'House settings', show: (s) => s.house !== null },
   { href: '/admin.html', label: 'Admin', show: (s) => s.me.isAdmin },
 ];
 
