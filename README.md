@@ -6,7 +6,9 @@ house where each room shows its videos. Multiple houses, each with its own
 layout, can share one library.
 
 - **Plan and design:** [docs/PLAN.md](docs/PLAN.md)
-- **Deploying on Unraid / Docker:** [deploy/README.md](deploy/README.md)
+- **Installing on Unraid:** [deploy/unraid/README.md](deploy/unraid/README.md)
+  (other Docker hosts: [deploy/README.md](deploy/README.md))
+- **Security review:** [docs/SECURITY.md](docs/SECURITY.md)
 
 ## Repository layout
 
@@ -15,7 +17,7 @@ layout, can share one library.
 | `app/` | TypeScript API (Fastify, Kysely, MySQL), migrations and seed catalog |
 | `web/` | Browser pages (plain TypeScript + Vite, no framework; Three.js for the 3D house): Search, List, 3D house, Inbox, House settings, Admin. The app serves the built pages. |
 | `worker/` | Python import worker: playlist sync (`yt-dlp`), CSV/paste imports, oEmbed metadata, keyword rules, nightly schedule. See [docs/JOBS.md](docs/JOBS.md) |
-| `deploy/` | `docker-compose.yml` and `.env.example` |
+| `deploy/` | `docker-compose.yml`, `.env.example`, backup/restore scripts (`deploy/scripts/`) and the [Unraid install guide](deploy/unraid/README.md) |
 | `.github/workflows/` | CI: lint, typecheck, unit and MySQL integration tests, Playwright browser tests; publishes both images to GHCR from `main` |
 
 ## Development
