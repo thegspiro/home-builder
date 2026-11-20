@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { buildApp } from '../../src/app.js';
+import { buildApp, PERMISSIONS_POLICY } from '../../src/app.js';
 import { createAccessVerifier } from '../../src/auth/access.js';
 import { assertCan } from '../../src/auth/policy.js';
 import { createTokenFactory, TEST_ACCESS, type TokenFactory } from '../helpers/access-tokens.js';
@@ -115,6 +115,15 @@ describe('HTTP app (no database)', () => {
     expect(res.headers['content-security-policy']).toContain("frame-ancestors 'none'");
     expect(res.headers['content-security-policy']).toContain('https://www.youtube-nocookie.com');
     expect(res.headers['x-content-type-options']).toBe('nosniff');
+    expect(res.headers['permissions-policy']).toBe(PERMISSIONS_POLICY);
+    expect(res.headers['permissions-policy']).toContain('camera=()');
+    expect(res.headers['permissions-policy']).not.toContain('fullscreen');
+  });
+
+  it('sets the permissions policy on rejected requests too', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/me' });
+    expect(res.statusCode).toBe(401);
+    expect(res.headers['permissions-policy']).toBe(PERMISSIONS_POLICY);
   });
 
   describe('state-changing requests (CSRF)', () => {

@@ -69,8 +69,9 @@ worker/         Python import worker
 deploy/
   docker-compose.yml
   .env.example
-  unraid/       Unraid install notes
-scripts/        POSIX sh: backup.sh (mysqldump), restore.sh
+  scripts/      POSIX sh: backup.sh (mysqldump), restore.sh (shipped with the
+                compose file, so one folder holds everything the server needs)
+  unraid/       Unraid install guide
 .github/workflows/  CI + GHCR image publishing
 docs/PLAN.md
 ```
